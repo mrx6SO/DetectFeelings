@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Text, View, ScrollView } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ListItem, Button, Input } from '@rneui/base';
-import { useMemo } from 'react';
 
 // Defina sua chave de API do OpenAI
 
