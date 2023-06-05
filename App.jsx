@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { Text, View, ScrollView } from 'react-native';
-//import { Input, Button, ListItem } from 'react-native-elements';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-//import { Input } from '@rneui/base';
-//import { Button } from '@rneui/themed';
 import { ListItem, Button, Input } from '@rneui/base';
+import { useMemo } from 'react';
+
 // Defina sua chave de API do OpenAI
-//const apiKey = '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'
-const apiKey = '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';
+
+const apiKey = '';
 
 const App = () => {
   const [inputValue, setInputValue] = useState('');
@@ -25,20 +24,23 @@ const App = () => {
         setInputValue('');
      
       }
-  
-  };
     
+    };
 
-  // adaptação da props `handleLongPress` para atualizar as mensagens
-  // renderizadas no componente ListItem
-  // ao pressionar sobre elemento contendo a resposta retornada da api
-  // ela é removida da `ScrollView` 
+  /* @ adaptação da props `handleLongPress`
+  *  @ short_description: atualiza as mensagens renderizadas no componente `ListItem`
+  *  
+  *   @long_description::description:
+  * 
+  *   Ao pressionar por um período longo (~ 2 seg) sob o elemento contendo a resposta da api,
+  *   `ScrollView` é atualizado, com base no `index` do array `messages`
+  * */ 
   const handleLongPress = (index) => {
     const updatedMessages = [...messages];
     updatedMessages.splice(index, 1);
     setMessages(updatedMessages);
   }
-
+// função para analisar a polaridade da mensagem
 const analyzeSentiment = async (text) => {
   try {
     const response = await fetch('https://api.openai.com/v1/completions', {
@@ -51,6 +53,7 @@ const analyzeSentiment = async (text) => {
         prompt: `Analyze the sentiment as 'positive', 'negative' or 'neutral' of the following text: ${text}'`,
         max_tokens: 1,
         model: "text-davinci-003", 
+        temperature: 0,
       }),
     });
 
@@ -58,38 +61,55 @@ const analyzeSentiment = async (text) => {
     const res = [];
     console.debug(data.error);
     
-    res.push(data)
+    res.push({
+      resultados: data
+    });
+    
     localStorage.setItem("resultados", JSON.stringify(res)); 
     
-    if(!data) { 
-      return "neutral"
+    if(data.error) { 
+      
+      return JSON.parse(localStorage.resultados)[0].resultados.error.code//null;
 
-      }
+    }
     
-    if (data && data.choices && data.choices.length > 0) {
-      const sentiment = data.choices[0].text.trim();//.toLowerCase();
+    if (data) {
+
+      return JSON.parse(localStorage.resultados)[0].resultados.choices[0].text;
+  
+    }
+
+    if (data || data.choices.length > 1) {
+    
+     //&& data.choices.length > 0) {
+  //      return data.choices[0].text;
+    //const sentimentAnalyzed = data.choices[0].text;
+
+     const sentiment = data.choices[0].text;//.toLowerCase();
       /*let sentiment = 'positivo' || 'negativo' || 'neutro';*/
-      if (sentiment == 'positive') {
+      if (sentiment === 'positive') {
         return 'Positivo';
-      } else if (sentiment == 'negative') {
+      } else if (sentiment === 'negative') {
         return 'Negativo';
-      } else if (sentiment == undefined) {
+      } else if (sentiment === 'neutral') {
         return 'Neutro';
       }
     } else { //if (!sentiment) {
       //console.error('Resposta inválida recebida da OpenAI API. Verifique sua apiKey.');
       
-      return error.message; //'Resposta inválida recebida da OpenAI API. Verifique sua apiKey';
+      return data.error.message; //'Resposta inválida recebida da OpenAI API. Verifique sua apiKey';
     }
   } catch (error) {
       console.error(error);
     //return new Array[{"code": "invalid_api_key"}]
-    return `code: "invalid_api_key"`
+    return JSON.parse(localStorage.resultados)[0].resultados.error.code
+    //return `code: "invalid_api_key"`
   }
 };
 
 
 return (
+  <>
   <SafeAreaProvider>
       <View style={{ flex: 1 }}>
         <ScrollView>
@@ -123,6 +143,7 @@ return (
         </View>
       </View>
     </SafeAreaProvider>
+    </>
   );
 };
 
